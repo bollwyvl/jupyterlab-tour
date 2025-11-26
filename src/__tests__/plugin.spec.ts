@@ -26,17 +26,43 @@ import {
   IUserTourManager,
   NS
 } from '../tokens';
+import * as nbformat from '@jupyterlab/nbformat';
+
+import { YNotebook } from '@jupyter/ydoc';
 
 const DEFAULT_TOURS_SIZE = 2;
 
 const [corePlugin, userPlugin, notebookPlugin, defaultsPlugin] = plugin;
+
+async function mockFetch(
+  input: RequestInfo,
+  init?: RequestInit | undefined
+): Promise<Response> {
+  if (
+    !(
+      typeof input == 'object' &&
+      input.url.match(/api\/config\/jupyterlabtourplugin/) != null
+    )
+  ) {
+    throw new Error(`cannot handle ${input}`);
+  }
+
+  return {
+    status: 200,
+    json: async () => {
+      return {};
+    }
+  } as any;
+}
 
 function mockApp(): Partial<JupyterFrontEnd> {
   return {
     commands: new CommandRegistry(),
     restored: Promise.resolve(),
     docRegistry: new DocumentRegistry(),
-    serviceManager: { serverSettings: ServerConnection.makeSettings() } as any
+    serviceManager: {
+      serverSettings: ServerConnection.makeSettings({ fetch: mockFetch })
+    } as any
   };
 }
 
@@ -173,7 +199,17 @@ describe(notebookPlugin.id, () => {
         mimeTypeService,
         contentFactory: new NotebookPanel.ContentFactory({ editorFactory })
       });
-      const model = new NotebookModel();
+      const sharedModel = YNotebook.create({
+        data: {
+          nbformat: nbformat.MAJOR_VERSION,
+          nbformat_minor: nbformat.MINOR_VERSION,
+          metadata: {
+            kernelspec: { name: '', display_name: '' },
+            language_info: { name: '' }
+          }
+        }
+      });
+      const model = new NotebookModel({ sharedModel });
       notebook.model = model;
       notebookTourManager.addNotebook(notebook);
       expect(notebookTourManager.tourManager.tours.size).toBe(0);
