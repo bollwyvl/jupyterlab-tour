@@ -199,9 +199,10 @@
                 }
             },
             {
-                "files": ".gitlab/workflows/*.yml",
+                "files": ".github/workflows/*.yml",
                 "options": {
-                    "proseWrap": "never"
+                    "proseWrap": "never",
+                    "printWidth": 120
                 }
             }
         ]
