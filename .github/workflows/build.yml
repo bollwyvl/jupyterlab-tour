@@ -51,7 +51,7 @@ jobs:
       - name: Upload extension packages
         uses: actions/upload-artifact@v5
         with:
-          name: extension-artifacts
+          name: jpt-${{ github.run_number }}-dist
           path: dist/jupyterlab_tour*
           if-no-files-found: error
 
@@ -137,7 +137,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: jupyterlab-tour-playwright-tests
+          name: jpt-${{ github.run_number }}-ui-tests-lab${{ matrix.jupyterlab }}
           path: |
             ui-tests/test-results*
             ui-tests/playwright-report
@@ -194,7 +194,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: notebook-tour-playwright-tests
+          name: jpt-${{ github.run_number }}-ui-tests-nb
           path: |
             ui-tests/test-results
             ui-tests/playwright-report
