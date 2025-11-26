@@ -1,16 +1,13 @@
-import Ajv, { ErrorObject, ValidateFunction } from 'ajv';
+import type { ErrorObject, ValidateFunction } from 'ajv';
+import Ajv from 'ajv';
 
-import { Notebook } from '@jupyterlab/notebook';
-import { ISignal, Signal } from '@lumino/signaling';
+import type { Notebook } from '@jupyterlab/notebook';
+import type { ISignal } from '@lumino/signaling';
+import { Signal } from '@lumino/signaling';
 import USER_SCHEMA from '../schema/user-tours.json';
 import { notebookTourIcon } from './icons';
-import {
-  INotebookTourManager,
-  ITour,
-  ITourManager,
-  NOTEBOOK_PLUGIN_ID,
-  NS
-} from './tokens';
+import type { INotebookTourManager, ITour, ITourManager } from './tokens';
+import { NOTEBOOK_PLUGIN_ID, NS } from './tokens';
 
 /**
  * The NotebookTourManager is needed to sync Notebook metadata with the TourManager
