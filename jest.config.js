@@ -2,8 +2,11 @@ const jestJupyterLab = require('@jupyterlab/testutils/lib/jest-config');
 
 const esModules = [
   '@codemirror',
+  '@jupyter/react-components',
   '@jupyter/ydoc',
   '@jupyterlab/',
+  '@microsoft/fast-colors',
+  'jupyterlab-tour',
   'lib0',
   'nanoid',
   'vscode-ws-jsonrpc',
