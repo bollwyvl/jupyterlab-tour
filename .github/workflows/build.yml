@@ -15,6 +15,7 @@ env:
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
 
     steps:
@@ -63,7 +64,8 @@ jobs:
           path: dist/jupyterlab_tour*
           if-no-files-found: error
 
-  test_isolated:
+  smoke-test:
+    name: Smoke Test
     needs: build
     runs-on: ubuntu-latest
 
@@ -88,6 +90,7 @@ jobs:
           sudo rm -rf $(which node)
 
           pip install -vv "jupyterlab~=${MIN_LAB}" jupyterlab_tour*.whl
+          pip check
 
       - name: Smoke Test
         run: |
@@ -95,8 +98,8 @@ jobs:
           jupyter labextension list 2>&1 | grep -ie "jupyterlab-tour.*OK"
           python -m jupyterlab.browser_check --no-browser-test
 
-  integration-tests-lab:
-    name: Integration tests for ${{ matrix.client }} ~${{ matrix.client-version }}
+  ui-tests:
+    name: UI tests (${{ matrix.client }} ~${{ matrix.client-version }})
     needs: build
     runs-on: ubuntu-latest
     strategy:
