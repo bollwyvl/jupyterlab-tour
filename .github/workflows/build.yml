@@ -26,23 +26,18 @@ jobs:
         name: Base Setup
         uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
 
-      - name: Install dependencies
-        run: python -m pip install -v -U "jupyterlab~=${MAX_LAB}" build
+      - &step-py-deps
+        name: Install Python dependencies
+        run: |-
+          python -m pip install -v -U "jupyterlab~=${MIN_LAB}" build
+          pip check
 
-      - name: Build the extension
-        run: |
-          set -eux
-          python -m pip install -v .[test]
-
-          jupyter labextension list
-          jupyter labextension list 2>&1 | grep -ie "jupyterlab-tour.*OK"
+      - &step-js-deps
+        name: Install JS dependencies
+        run: jlpm --immutable --immutable-cache --check-cache
 
       - name: Package the extension
-        run: |
-          set -eux
-
-          pip install -U build
-          pyproject-build
+        run: pyproject-build .
 
       - name: Upload extension packages
         uses: actions/upload-artifact@v5
@@ -69,14 +64,7 @@ jobs:
           name: *dist
 
       - name: Install Extension
-        run: |
-          set -eux
-          # Remove NodeJS, twice to take care of system and locally installed node versions.
-          sudo rm -rf $(which node)
-          sudo rm -rf $(which node)
-
-          pip install -v "jupyterlab~=${MIN_LAB}" jupyterlab_tour*.whl
-          pip check
+        run: pip install -v "jupyterlab~=${MIN_LAB}" jupyterlab_tour*.whl
 
       - name: Smoke Test
         run: |
@@ -92,16 +80,14 @@ jobs:
       - *step-checkout
       - *step-base-setup
       - *step-download-dist
+      - *step-py-deps
+      - *step-js-deps
+
       - name: Lint the extension
-        run: |
-          set -eux
-          jlpm
-          jlpm run lint:check
+        run: jlpm run lint:check
 
       - name: Test the extension
-        run: |
-          set -eux
-          jlpm run test
+        run: jlpm run test
 
   ui-tests:
     name: UI tests (${{ matrix.client }} ~${{ matrix.client-version }})
