@@ -16,7 +16,7 @@ test('should run the welcome tour', async ({ page }) => {
   await advanceTour(page, 6);
 
   await expect
-    .soft(page.locator('.react-joyride__tooltip h4'))
+    .soft(page.locator('.react-joyride__tooltip h1'))
     .toHaveText('Command Palette');
   await page.getByLabel('Done').click();
 });
@@ -29,6 +29,7 @@ test('should run the notebook tour', async ({ page }) => {
     page.waitForEvent('popup'),
     page.getByText('Python 3 (ipykernel)').click()
   ]);
+  await notebookPage.getByRole('button', { name: 'Start now' }).click();
   await advanceTour(page, 7);
   await expect
     .soft(notebookPage.locator('.react-joyride__tooltip p'))
