@@ -2,23 +2,32 @@ name: Build
 
 on:
   push:
-    branches: main
+    branches: [main]
   pull_request:
-    branches: '*'
+    branches: ['*']
+
+env:
+  MIN_PYTHON: &min-python '3.10'
+  MIN_LAB: &min-lab '4.3.0'
+  MIN_NB: &min-nb '7.3.0'
+  MAX_LAB: &max-lab '4.5'
+  MAX_NB: &max-nb '7.5'
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - &step-checkout
+        name: Checkout
         uses: actions/checkout@v6
 
-      - name: Base Setup
+      - &step-base-setup
+        name: Base Setup
         uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
 
       - name: Install dependencies
-        run: python -m pip install -U "jupyterlab>=4.3.0,<5"
+        run: python -m pip install -vv -U "jupyterlab~=${MAX_LAB}"
 
       - name: Lint the extension
         run: |
@@ -29,12 +38,12 @@ jobs:
       - name: Test the extension
         run: |
           set -eux
-          jlpm run test
+          && jlpm run test
 
       - name: Build the extension
         run: |
           set -eux
-          python -m pip install .[test]
+          python -m pip install -vv .[test]
 
           jupyter labextension list
           jupyter labextension list 2>&1 | grep -ie "jupyterlab-tour.*OK"
@@ -44,14 +53,13 @@ jobs:
         run: |
           set -eux
 
-          pip install build
-          python -m build
-          pip uninstall -y "jupyterlab_tour" jupyterlab
+          pip install -U build
+          pyproject-build
 
       - name: Upload extension packages
         uses: actions/upload-artifact@v5
         with:
-          name: jpt-${{ github.run_number }}-dist
+          name: &dist jpt-${{ github.run_number }}-dist
           path: dist/jupyterlab_tour*
           if-no-files-found: error
 
@@ -63,52 +71,60 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.10'
+          python-version: *min-python
           architecture: 'x64'
-      - uses: actions/download-artifact@v6
+
+      - &step-download-dist
+        name: Download extension package
+        uses: actions/download-artifact@v6
         with:
-          name: extension-artifacts
-      - name: Install and Test
+          name: *dist
+
+      - name: Install Extension
         run: |
           set -eux
           # Remove NodeJS, twice to take care of system and locally installed node versions.
           sudo rm -rf $(which node)
           sudo rm -rf $(which node)
 
-          pip install "jupyterlab>=4.3.0,<5" jupyterlab_tour*.whl
+          pip install -vv "jupyterlab~=${MIN_LAB}" jupyterlab_tour*.whl
 
+      - name: Smoke Test
+        run: |
           jupyter labextension list
           jupyter labextension list 2>&1 | grep -ie "jupyterlab-tour.*OK"
           python -m jupyterlab.browser_check --no-browser-test
 
   integration-tests-lab:
-    name: Integration tests for JupyterLab
+    name: Integration tests for ${{ matrix.client }} ~${{ matrix.client-version }}
+    needs: build
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        jupyterlab: ['4.3', '4.5']
-    needs: build
-    runs-on: ubuntu-latest
-
+        include:
+          - client: jupyterlab
+            client-version: *min-lab
+          - client: jupyterlab
+            client-version: *max-lab
+          - client: notebook
+            client-version: *min-nb
+            jest-args: &jest-nb -c playwright-notebook.config.js
+          - client: notebook
+            client-version: *max-nb
+            jest-args: *jest-nb
     env:
-      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/pw-browsers
+      PLAYWRIGHT_BROWSERS_PATH: &path-browsers ${{ github.workspace }}/pw-browsers
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Base Setup
-        uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
-
-      - name: Download extension package
-        uses: actions/download-artifact@v6
-        with:
-          name: extension-artifacts
+      - *step-checkout
+      - *step-base-setup
+      - *step-download-dist
 
       - name: Install the extension
         run: |
           set -eux
-          python -m pip install "jupyterlab~=${{ matrix.jupyterlab }}" jupyterlab_tour*.whl
+          python -m pip install "${{ matrix.client }}~=${{ matrix.client-version }}" jupyterlab_tour*.whl
 
       - name: Install dependencies
         working-directory: ui-tests
@@ -120,8 +136,7 @@ jobs:
       - name: Set up browser cache
         uses: actions/cache@v4
         with:
-          path: |
-            ${{ github.workspace }}/pw-browsers
+          path: *path-browsers
           key: ${{ runner.os }}-${{ hashFiles('ui-tests/yarn.lock') }}
 
       - name: Install browser
@@ -131,72 +146,18 @@ jobs:
       - name: Execute integration tests
         working-directory: ui-tests
         run: |
-          jlpm playwright test --output test-results-${{ matrix.jupyterlab }}
+          jlpm playwright test \
+            --output test-results-${{ matrix.client }}-${{ matrix.client-version}} \
+            ${{ matrix.jest-args }}
 
       - name: Upload Playwright Test report
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: jpt-${{ github.run_number }}-ui-tests-lab${{ matrix.jupyterlab }}
+          name: |-
+            jpt-${{ github.run_number }}-ui-tests-${{ matrix.client }}-${{ matrix.client-version }}
           path: |
             ui-tests/test-results*
-            ui-tests/playwright-report
-
-  integration-tests-nb:
-    name: Integration tests for Notebook
-    needs: build
-    runs-on: ubuntu-latest
-
-    env:
-      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/pw-browsers
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Base Setup
-        uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
-
-      - name: Download extension package
-        uses: actions/download-artifact@v6
-        with:
-          name: extension-artifacts
-
-      - name: Install the extension
-        run: |
-          set -eux
-          python -m pip install "notebook~=7.0" jupyterlab_tour*.whl
-
-      - name: Install dependencies
-        working-directory: ui-tests
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
-        run: |
-          jlpm install
-
-      - name: Set up browser cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/pw-browsers
-          key: ${{ runner.os }}-${{ hashFiles('ui-tests/yarn.lock') }}
-
-      - name: Install browser
-        run: jlpm playwright install chromium
-        working-directory: ui-tests
-
-      - name: Execute integration tests
-        working-directory: ui-tests
-        run: |
-          jlpm playwright test -c playwright-notebook.config.js
-
-      - name: Upload Playwright Test report
-        if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: jpt-${{ github.run_number }}-ui-tests-nb
-          path: |
-            ui-tests/test-results
             ui-tests/playwright-report
 
   check_links:
@@ -204,6 +165,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - *step-checkout
       - uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
       - uses: jupyterlab/maintainer-tools/.github/actions/check-links@v1

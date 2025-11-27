@@ -8,6 +8,9 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  MIN_LAB: '4.3'
+
 jobs:
   update-snapshots:
     if: >
@@ -27,7 +30,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -39,12 +42,12 @@ jobs:
           GH_REPO: ${{ github.repository }}
           COMMENT_AT: ${{ github.event.comment.created_at }}
         run: |
-          pr="$(gh api /repos/${GH_REPO}/pulls/${PR_NUMBER})"
+          pr="$(gh api '/repos/${GH_REPO}/pulls/${PR_NUMBER}')"
           head_sha="$(echo "$pr" | jq -r .head.sha)"
           pushed_at="$(echo "$pr" | jq -r .pushed_at)"
 
           if [[ $(date -d "$pushed_at" +%s) -gt $(date -d "$COMMENT_AT" +%s) ]]; then
-              echo "Updating is not allowed because the PR was pushed to (at $pushed_at) after the triggering comment was issued (at $COMMENT_AT)"
+              echo "Updating is not allowed because the PR was pushed to (at ${pushed_at}) after the triggering comment was issued (at ${COMMENT_AT})"
               exit 1
           fi
 
@@ -70,7 +73,7 @@ jobs:
         uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
 
       - name: Install dependencies
-        run: python -m pip install -U "jupyterlab>=4.3.0,<5"
+        run: python -m pip install -U "jupyterlab~=${MIN_LAB}"
 
       - name: Install extension
         run: |
