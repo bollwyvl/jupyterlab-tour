@@ -8,7 +8,7 @@ export async function advanceTour(
   stop?: number
 ) {
   stop = stop || steps - -1;
-  for (let i = start; i < stop + 1; i++) {
+  for (let i = start; i < stop; i++) {
     await page.getByLabel(`Next (Step ${i} of ${steps})`, { exact: true }).click();
   }
 }
