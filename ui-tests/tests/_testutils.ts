@@ -1,8 +1,8 @@
-import type { IJupyterLabPageFixture } from '@jupyterlab/galata';
+import type { Page } from 'playwright-core';
 
 /** Click next a number of times for a tour. */
 export async function advanceTour(
-  page: IJupyterLabPageFixture,
+  page: Page,
   steps: number,
   stop?: number,
   start: number = 1
