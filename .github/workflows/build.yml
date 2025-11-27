@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: ['*']
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   MIN_PYTHON: &min-python '3.10'
   MIN_LAB: &min-lab '4.3.0'
