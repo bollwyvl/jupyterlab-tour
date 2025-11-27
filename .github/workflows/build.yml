@@ -41,7 +41,7 @@ jobs:
 
       - &step-js-deps
         name: Install JS dependencies
-        run: jlpm --immutable
+        run: ls node_modules/.yarn-state.yml || jlpm --immutable
 
       - name: Package the extension
         run: pyproject-build .
