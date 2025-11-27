@@ -5,7 +5,7 @@ test('should run the welcome tour', async ({ page }) => {
   await page.getByRole('button', { name: 'Start now' }).click();
   await advanceTour(page, 8);
   await expect
-    .soft(page.locator('.react-joyride__tooltip h4'))
+    .soft(page.locator('.react-joyride__tooltip h1'))
     .toHaveText('Command Palette');
   await page.getByLabel('Done').click();
 });
