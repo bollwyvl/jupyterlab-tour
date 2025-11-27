@@ -32,6 +32,13 @@ jobs:
           python -m pip install -v -U "jupyterlab~=${MIN_LAB}" build
           pip check
 
+      - &step-js-cache
+        name: Set up JS cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+
       - &step-js-deps
         name: Install JS dependencies
         run: jlpm --immutable
@@ -75,11 +82,10 @@ jobs:
   unit-test:
     name: Unit Test/Lint
     runs-on: ubuntu-latest
-    needs: build
     steps:
       - *step-checkout
       - *step-base-setup
-      - *step-download-dist
+      - *step-js-cache
       - *step-py-deps
       - *step-js-deps
 
