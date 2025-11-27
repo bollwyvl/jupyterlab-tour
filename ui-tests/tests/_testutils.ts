@@ -4,9 +4,11 @@ import type { IJupyterLabPageFixture } from '@jupyterlab/galata';
 export async function advanceTour(
   page: IJupyterLabPageFixture,
   steps: number,
-  start: number = 1
+  start: number = 1,
+  stop?: number
 ) {
-  for (let i = start; i < steps + 1; i++) {
-    await page.getByLabel(`Next (Step ${i} of 8)`, { exact: true }).click();
+  stop = stop || steps - -1;
+  for (let i = start; i < stop + 1; i++) {
+    await page.getByLabel(`Next (Step ${i} of ${steps})`, { exact: true }).click();
   }
 }
