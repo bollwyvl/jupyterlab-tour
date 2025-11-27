@@ -38,14 +38,14 @@ jobs:
 
       - &step-js-cache
         name: Set up JS cache
-        uses: actions/cache@v4
+        uses: &uses-cache actions/cache@v4
         with:
           path: node_modules
           key: ${{ runner.os }}-${{ hashFiles('yarn.lock') }}
 
       - &step-js-deps
         name: Install JS dependencies
-        run: ls node_modules/.yarn-state.yml || jlpm --immutable
+        run: &run-maybe-jlpm ls node_modules/.yarn-state.yml || jlpm --immutable
 
       - name: Package the extension
         run: pyproject-build .
@@ -124,6 +124,18 @@ jobs:
       - *step-base-setup
       - *step-download-dist
 
+      - name: Set up JS cache
+        uses: *uses-cache
+        with:
+          path: ui-tests/node_modules
+          key: &key-ui-yarn-lock ${{ runner.os }}-${{ hashFiles('ui-tests/yarn.lock') }}
+
+      - name: Set up browser cache
+        uses: *uses-cache
+        with:
+          path: *path-browsers
+          key: *key-ui-yarn-lock
+
       - name: Install the extension
         run: |
           set -eux
@@ -133,14 +145,7 @@ jobs:
         working-directory: ui-tests
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
-        run: |
-          jlpm install
-
-      - name: Set up browser cache
-        uses: actions/cache@v4
-        with:
-          path: *path-browsers
-          key: ${{ runner.os }}-${{ hashFiles('ui-tests/yarn.lock') }}
+        run: *run-maybe-jlpm
 
       - name: Install browser
         run: jlpm playwright install chromium
