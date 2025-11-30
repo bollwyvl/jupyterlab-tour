@@ -118,7 +118,13 @@
     "jupyterlab": {
         "extension": true,
         "schemaDir": "schema",
-        "outputDir": "jupyterlab_tour/labextension"
+        "outputDir": "jupyterlab_tour/labextension",
+        "sharedPackages": {
+            "ajv": {
+                "bundled": true,
+                "singleton": false
+            }
+        }
     },
     "styleModule": "style/index.js",
     "eslintIgnore": [
