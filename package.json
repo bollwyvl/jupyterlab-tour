@@ -123,6 +123,10 @@
             "ajv": {
                 "bundled": true,
                 "singleton": false
+            },
+            "react-joyride": {
+                "bundled": true,
+                "singleton": false
             }
         }
     },

@@ -7,7 +7,7 @@ import {
 } from '@jupyterlab/notebook';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { CommandRegistry } from '@lumino/commands';
-import { ReadonlyJSONObject } from '@lumino/coreutils';
+import { PromiseDelegate, ReadonlyJSONObject } from '@lumino/coreutils';
 import { DocumentRegistry } from '@jupyterlab/docregistry';
 import { ServerConnection } from '@jupyterlab/services';
 import {
@@ -213,11 +213,15 @@ describe(notebookPlugin.id, () => {
       notebook.model = model;
       notebookTourManager.addNotebook(notebook);
       expect(notebookTourManager.tourManager.tours.size).toBe(0);
-      model.setMetadata(NS, {
-        tours: [aTour() as unknown as ReadonlyJSONObject]
-      });
+
+      let changed = new PromiseDelegate<void>();
+      notebookTourManager.notebookToursChanged.connect(() => changed.resolve());
+      model.setMetadata(NS, { tours: [aTour() as unknown as ReadonlyJSONObject] });
+      await changed.promise;
+      changed = new PromiseDelegate<void>();
       expect(notebookTourManager.tourManager.tours.size).toBe(1);
       model.deleteMetadata(NS);
+      await changed.promise;
       expect(notebookTourManager.tourManager.tours.size).toBe(0);
     });
   });

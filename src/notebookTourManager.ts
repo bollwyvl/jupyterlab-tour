@@ -3,10 +3,10 @@ import type { ErrorObject, ValidateFunction } from 'ajv';
 import type { Notebook } from '@jupyterlab/notebook';
 import type { ISignal } from '@lumino/signaling';
 import { Signal } from '@lumino/signaling';
-import USER_SCHEMA from '../schema/user-tours.json';
 import { notebookTourIcon } from './icons';
 import type { INotebookTourManager, ITour, ITourManager } from './tokens';
 import { NOTEBOOK_PLUGIN_ID, NS } from './tokens';
+import { PromiseDelegate } from '@lumino/coreutils';
 
 /**
  * The NotebookTourManager is needed to sync Notebook metadata with the TourManager
@@ -112,7 +112,7 @@ export class NotebookTourManager implements INotebookTourManager {
     metadata: any
   ): Promise<void> {
     const { translator } = this._tourManager;
-    const _validator = await Private.ensureAjv();
+    const _validator = await Private.ensureValidator();
     _validator(metadata);
     const errors = _validator.errors || [];
     this._validationErrors.set(notebook, errors);
@@ -164,18 +164,26 @@ export class NotebookTourManager implements INotebookTourManager {
 /** A namespace for private values. */
 export namespace Private {
   let _validator: ValidateFunction | null = null;
+  let _loading: PromiseDelegate<ValidateFunction> | null = null;
 
   /**
-   * Get an instance of the pre-compiled validator function.
+   * Get a singleton pre-compiled validator function.
    */
-  export async function ensureAjv(): Promise<ValidateFunction> {
-    if (!_validator) {
+  export async function ensureValidator(): Promise<ValidateFunction> {
+    if (!_loading) {
+      _loading = new PromiseDelegate();
+
+      const { Ajv } = await import('ajv');
+      const schema = await import('../schema/user-tours.json');
+
       // `jupyter.lab...` keywords custom keywords rejected by default
       // we may be able to do better than `strict: false` by defining
       // custom keywords https://ajv.js.org/keywords.html
-      const { Ajv } = await import('ajv');
-      _validator = new Ajv({ strict: false }).compile(USER_SCHEMA);
+      const ajv = new Ajv({ strict: false });
+      _validator = ajv.compile(schema);
+      _loading.resolve(_validator);
     }
-    return _validator;
+
+    return _loading.promise;
   }
 }
